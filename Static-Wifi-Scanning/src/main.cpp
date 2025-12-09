@@ -1,86 +1,97 @@
-/*
- * Complete ESP32 Webserver with Static IP
- * Controls Built-in LED (GPIO 2)
- */
+#include <Wire.h>
+#include <Adafruit_GFX.h>
+#include <Adafruit_SSD1306.h>
+#include <DHT.h>
 
-#include <WiFi.h>
+// --- Configuration ---
+#define SCREEN_WIDTH 128    // OLED display width, in pixels
+#define SCREEN_HEIGHT 64    // OLED display height, in pixels
+#define OLED_ADDR 0x3C      // I2C address for 128x64 display (0x3C or 0x3D)
 
-const char* ssid = "1255";
-const char* password = "12345678";
+// Declaration for an SSD1306 display connected to I2C (SDA, SCL pins)
+// The '-1' means we are not using a reset pin, which is typical for I2C.
+Adafruit_SSD1306 display(SCREEN_WIDTH, SCREEN_HEIGHT, &Wire, -1);
 
-// ----- Static IP Configuration Settings -----
-// Choose an IP outside your router's normal DHCP range to avoid conflicts
-IPAddress staticIP(192, 168, 122, 151); 
-IPAddress gateway(192, 168, 122, 1);    // Your router's IP address
-IPAddress subnet(255, 255, 255, 0);
-IPAddress primaryDNS(8, 8, 8, 8);     // Google DNS, optional
-// ------------------------------------------
+// Pins and Sensor Type
+#define DHTPIN 23           // GPIO pin the DHT data line is connected to
+#define DHTTYPE DHT22       // Specify the sensor model
+#define BUTTON_PIN 5        // Button connected between this pin and GND
 
-WiFiServer server(80);
-const int LED_PIN = 2;     // Built-in LED (GPIO 2)
+// Initialize DHT sensor object
+DHT dht(DHTPIN, DHTTYPE);
 
 void setup() {
   Serial.begin(115200);
-  pinMode(LED_PIN, OUTPUT);
-  digitalWrite(LED_PIN, LOW);   // LED off at start
 
-  // Connect WiFi
-  Serial.print("Connecting to ");
-  Serial.println(ssid);
+  // Set the button pin as an input with internal pull-up resistor enabled
+  pinMode(BUTTON_PIN, INPUT_PULLUP);
 
-  // 1. Configure the Static IP Address
-  WiFi.config(staticIP, gateway, subnet, primaryDNS);
-  
-  // 2. Start connecting to WiFi
-  WiFi.begin(ssid, password);
-
-  while (WiFi.status() != WL_CONNECTED) {
-    delay(500);
-    Serial.print(".");
+  // --- OLED Init ---
+  // You must check your specific OLED's I2C address (usually 0x3C or 0x3D)
+  if (!display.begin(SSD1306_SWITCHCAPVCC, OLED_ADDR)) {
+    Serial.println("OLED not found or wrong address!");
+    while (1); // Stop execution if OLED is not initialized
   }
-  Serial.println("\nWiFi connected!");
 
-  Serial.print("ESP32 Static IP Address: ");
-  Serial.println(WiFi.localIP());
+  display.clearDisplay();
+  display.setTextSize(1);
+  display.setTextColor(WHITE);
+  display.setCursor(0, 0);
+  display.println("System Ready...");
+  display.println("Press button to read...");
+  display.display();
 
-  server.begin();
+  dht.begin();
 }
 
 void loop() {
-  WiFiClient client = server.available();
-  if (!client) return;  // No client, exit
+  // Check if the button is pressed (LOW because of INPUT_PULLUP)
+  if (digitalRead(BUTTON_PIN) == LOW) {
+    display.clearDisplay();
+    display.setCursor(0, 0);
+    display.println("Reading DHT...");
+    display.display();
 
-  Serial.println("New Client connected");
-  // Read the first line of the request
-  String request = client.readStringUntil('\r');
-  Serial.println(request);
+    delay(50); // Small debounce delay
 
-  // ----- LED CONTROL -----
-  if (request.indexOf("/LED=ON") != -1) {
-    digitalWrite(LED_PIN, HIGH);
+    // Reading temperature or humidity takes about 250 milliseconds!
+    float h = dht.readHumidity();
+    float t = dht.readTemperature(); // Celsius
+
+    display.clearDisplay();
+
+    if (isnan(t) || isnan(h)) {
+      Serial.println("Failed to read from DHT sensor!");
+      display.setCursor(0, 0);
+      display.println("DHT Error!");
+    } else {
+      Serial.print("Temperature: ");
+      Serial.print(t);
+      Serial.print(" C, Humidity: ");
+      Serial.print(h);
+      Serial.println(" %");
+
+      display.setCursor(0, 0);
+      display.println("DHT22 Readings");
+      display.setCursor(0, 20);
+      display.print("Temp: ");
+      display.print(t);
+      display.println(" C");
+      display.setCursor(0, 40);
+      display.print("Hum:  ");
+      display.print(h);
+      display.println(" %");
+    }
+
+    display.display();
+
+    // Wait for the button to be released before proceeding
+    while (digitalRead(BUTTON_PIN) == LOW) {
+      delay(10);
+    }
+    delay(500); // Wait a short period after release before allowing a new read
   }
-  if (request.indexOf("/LED=OFF") != -1) {
-    digitalWrite(LED_PIN, LOW);
-  }
-
-  // ----- RESPONSE PAGE -----
-  String htmlPage =
-    "<!DOCTYPE html><html>"
-    "<head><meta name=\"viewport\" content=\"width=device-width, initial-scale=1\"></head>"
-    "<body><h1>ESP32 LED Control</h1>"
-    "<p>Status: " + String(digitalRead(LED_PIN) == HIGH ? "ON" : "OFF") + "</p>"
-    "<p><a href=\"/LED=ON\"><button style=\"background-color:#4CAF50; color: white; padding: 15px 32px; text-align: center; text-decoration: none; display: inline-block; font-size: 16px;\">LED ON</button></a></p>"
-    "<p><a href=\"/LED=OFF\"><button style=\"background-color:#f44336; color: white; padding: 15px 32px; text-align: center; text-decoration: none; display: inline-block; font-size: 16px;\">LED OFF</button></a></p>"
-    "</body></html>";
-
-  // HTTP Headers
-  client.println("HTTP/1.1 200 OK");
-  client.println("Content-Type: text/html");
-  client.println("Connection: close");
-  client.println();
-  client.println(htmlPage);
-
-  delay(1);
-  client.stop();
-  Serial.println("Client disconnected");
+  
+  // This delay prevents the loop from consuming too much power by constantly checking the button
+  delay(10);
 }
