@@ -8,7 +8,7 @@
 const char* ssid = "Rudolfensis";
 const char* password = "2053297.";
 
-WiFiServer server(80);
+WiFiServer server(80);=.
 const int LED_PIN = 2;    // Built-in LED
 
 void setup() {
