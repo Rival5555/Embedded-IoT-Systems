@@ -25,12 +25,12 @@
 #include "DHT.h"
 
 // ------------ WiFi credentials (for wokwi) ------------
-char ssid[] = "1255";
-char pass[] = "12345678";
+char ssid[] = "NTU FSD";
+char pass[] = "";
 
 // ------------ Pins (match your Wokwi diagram) ------------
 #define DHTPIN   23
-#define DHTTYPE  DHT22
+#define DHTTYPE  DHT11
 
 #define BUTTON_PIN 5   // pushbutton, one side to GPIO5, other to GND
 
