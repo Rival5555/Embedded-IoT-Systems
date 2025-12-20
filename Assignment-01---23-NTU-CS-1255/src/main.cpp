@@ -76,7 +76,7 @@ unsigned long lastModeButtonPressTime = 0;
 unsigned long lastBootButtonPressTime = 0;
 const unsigned long BUTTON_DEBOUNCE_DELAY = 50;
 
-// Manual LED toggle state (used after short press)
+// Manual LED toggle state bb(used after short press)
 bool isManualControlEnabled = false;
 bool manualLEDState = false;
 
