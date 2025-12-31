@@ -1,0 +1,31 @@
+{
+  "version": 1,
+  "author": "Raees",
+  "editor": "wokwi",
+  "parts": [
+    { "type": "board-esp32-devkit-c-v4", "id": "esp", "top": 4.7, "left": -120.2, "attrs": {} },
+    { "type": "wokwi-dht22", "id": "dht1", "top": 100, "left": 100, "attrs": {} },
+    { "type": "board-ssd1306", "id": "oled1", "top": 89.54, "left": 173.03, "attrs": { "i2cAddress": "0x3c" } },
+    {
+      "type": "wokwi-pushbutton",
+      "id": "btn1",
+      "top": 83,
+      "left": 19.2,
+      "attrs": { "color": "green", "label": "BTN" }
+    }
+  ],
+  "connections": [
+    [ "esp:TX", "$serialMonitor:RX", "", [] ],
+    [ "esp:RX", "$serialMonitor:TX", "", [] ],
+    [ "esp:3V3", "oled1:VCC", "red", [ "h172.5", "v-86.4", "h67.05" ] ],
+    [ "esp:GND.1", "oled1:GND", "black", [ "v-9.6", "h134.4", "v67.3" ] ],
+    [ "esp:22", "oled1:SCL", "blue", [] ],
+    [ "esp:21", "oled1:SDA", "blue", [] ],
+    [ "btn1:1.l", "esp:5", "yellow", [] ],
+    [ "btn1:2.l", "esp:GND.1", "black", [ "v38.6", "h-38.1" ] ],
+    [ "dht1:VCC", "esp:3V3", "red", [ "v0" ] ],
+    [ "dht1:GND", "esp:GND.1", "black", [ "v0" ] ],
+    [ "dht1:SDA", "esp:23", "green", [ "v0" ] ]
+  ],
+  "dependencies": {}
+}
